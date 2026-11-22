@@ -1,47 +1,98 @@
+
 name: Playwright Tests
+
 on:
+  # Automatically run on push
   push:
-    branches: [ main, master ]
+    branches:
+      - main
+      - master
+
+  # Automatically run on pull requests
   pull_request:
-    branches: [ main, master ]
+    branches:
+      - main
+      - master
+
+  # Manually run with browser and environment selection
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Target environment URL'
+        description: 'Select target environment'
         required: true
         default: 'qa'
         type: choice
         options:
           - qa
           - dev
+
       browser:
-        description: 'Browser to run tests on (chrome, firefox, webkit)'
+        description: 'Select browser'
         required: true
-        default: 'chrome'
+        default: 'chromium'
         type: choice
         options:
-          - chrome
+          - chromium
           - firefox
           - webkit
-          - safari
-          - edge
-          - chromium
-          - brave
-          - opera
-
 
 jobs:
   test:
+    name: Playwright Automation Tests
     runs-on: ubuntu-latest
+
+    # Default values for push and pull_request events
+    env:
+      BROWSER: ${{ github.event.inputs.browser || 'chromium' }}
+      TARGET_ENV: ${{ github.event.inputs.environment || 'qa' }}
+
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-java@v5
+
+      # 1. Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      # 2. Configure Java
+      - name: Setup Java
+        uses: actions/setup-java@v5
         with:
-          distribution: 'temurin'
-          java-version: '25'
-      - name: Build & Install
-        run: mvn -B install -D skipTests --no-transfer-progress
-      - name: Ensure browsers are installed
-        run: mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="install --with-deps"
-      - name: Run tests
-        run: mvn test -PeventBooking -Dbrowser=${{github.event.inputs.browser}} -Denv=${{github.event.inputs.environment}}
+          distribution: temurin
+          java-version: '18'
+          cache: maven
+
+      # 3. Display selected configuration
+      - name: Display execution configuration
+        run: |
+          echo "Browser: $BROWSER"
+          echo "Environment: $TARGET_ENV"
+          echo "Trigger: ${{ github.event_name }}"
+
+      # 4. Build Maven project
+      - name: Build project
+        run: mvn -B clean install -DskipTests
+
+      # 5. Install selected Playwright browser
+      - name: Install Playwright browser
+        run: |
+          mvn exec:java \
+            -Dexec.mainClass=com.microsoft.playwright.CLI \
+            -Dexec.args="install --with-deps $BROWSER"
+
+      # 6. Execute TestNG / Maven tests
+      - name: Run Playwright tests
+        run: |
+          mvn test \
+            -PeventBooking \
+            -Dbrowser="$BROWSER" \
+            -Denv="$TARGET_ENV"
+
+      # 7. Upload test reports even if tests fail
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-reports
+          path: |
+            target/surefire-reports/
+          if-no-files-found: ignore
+          retention-days: 7
