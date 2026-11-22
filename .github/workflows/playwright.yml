@@ -17,6 +17,7 @@ on:
       browser:
         description: 'Browser to run tests on (chrome, firefox, webkit)'
         required: true
+        default: 'chrome'
         type: choice
         options:
           - chrome
