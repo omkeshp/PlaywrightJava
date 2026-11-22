@@ -38,13 +38,13 @@ public class TestBase {
 
         if(browserName.equalsIgnoreCase("chrome")){
             playwright = Playwright.create();
-            browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setChannel("chrome").setHeadless(false));
+            browser = playwright.chromium().launch();
         } else if(browserName.equalsIgnoreCase("firefox")){
             playwright = Playwright.create();
-            browser = playwright.firefox().launch(new BrowserType.LaunchOptions().setHeadless(false));
+            browser = playwright.firefox().launch();
         } else if(browserName.equalsIgnoreCase("safari")){
             playwright = Playwright.create();
-            browser = playwright.webkit().launch(new BrowserType.LaunchOptions().setHeadless(false));
+            browser = playwright.webkit().launch();
         } else {
             throw new IllegalArgumentException("Invalid browser name: " + browserName);
         }
